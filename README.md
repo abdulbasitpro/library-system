@@ -20,8 +20,8 @@ A professional, SaaS-ready Library Management System built with a modern stack. 
 
 ## 📂 Project Structure
 
--   `client/`: React frontend (Vite)
--   `server/`: Node.js/Express API
+-   `frontend/`: React frontend (Vite)
+-   `backend/`: Node.js/Express API
 -   `brain/`: Project status and implementation artifacts (task list, walkthrough, etc.)
 
 ## ⚙️ Setup Instructions
@@ -31,13 +31,13 @@ A professional, SaaS-ready Library Management System built with a modern stack. 
 - MongoDB running locally or on Atlas
 
 ### 2. Backend Setup
-1. `cd server`
+1. `cd backend`
 2. `npm install`
 3. Create `.env` from the template provided in the walkthrough.
 4. `npm run dev`
 
 ### 3. Frontend Setup
-1. `cd client`
+1. `cd frontend`
 2. `npm install`
 3. `npm run dev`
 

@@ -1,5 +1,5 @@
 {
-  "name": "lms-server",
+  "name": "backend",
   "version": "1.0.0",
   "description": "Professional SaaS Library Management System - Backend",
   "main": "server.js",
