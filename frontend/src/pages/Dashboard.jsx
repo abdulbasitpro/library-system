@@ -5,7 +5,8 @@ import {
   AlertCircle, 
   History, 
   ArrowRight,
-  Plus
+  Plus,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import axiosInstance from '../utils/axiosInstance';
@@ -29,7 +30,7 @@ const Dashboard = () => {
           axiosInstance.get('/transactions/overdue')
         ]);
         
-        setStats(statsRes.data);
+        setStats(statsRes.data.stats);
         setRecentTransactions(transRes.data.transactions || []);
         setOverdueAlerts(alertsRes.data.overdueTransactions || []);
       } catch (err) {
@@ -64,7 +65,7 @@ const Dashboard = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">Welcome back, {user?.name.split(' ')[0]}! 👋</h2>
+        <h2 className="text-2xl font-bold">Welcome back, {user?.name?.split(' ')[0] || 'User'}! 👋</h2>
         <p className="text-slate-500">Here's what's happening in your library today.</p>
       </div>
 
@@ -75,26 +76,26 @@ const Dashboard = () => {
         ) : (
           <>
             <StatCard 
-              title="Total Books" 
-              value={stats?.totalBooks || 0} 
+              title="Total Transactions" 
+              value={stats?.total || 0} 
               icon={BookMarked} 
               color="bg-indigo-600" 
             />
             <StatCard 
               title="Active Issues" 
-              value={stats?.activeTransactions || 0} 
+              value={stats?.issued || 0} 
               icon={History} 
               color="bg-emerald-600" 
             />
             <StatCard 
               title="Overdue Books" 
-              value={overdueAlerts.length} 
+              value={stats?.overdue || 0} 
               icon={AlertCircle} 
               color="bg-rose-600" 
             />
             <StatCard 
-              title="Registered Members" 
-              value={stats?.totalUsers || 0} 
+              title="Books Returned" 
+              value={stats?.returned || 0} 
               icon={Users} 
               color="bg-violet-600" 
             />
