@@ -1,165 +1,176 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeftRight, RefreshCw, Clock, Filter } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
-import { TableRowSkeleton } from '../components/common/SkeletonLoader';
 import Button from '../components/common/Button';
-import { Search, Filter, History, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { SkeletonRow } from '../components/common/SkeletonLoader';
+
+const FILTERS = ['All', 'Issued', 'Returned', 'Overdue'];
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    issued:   'badge-issued',
+    returned: 'badge-returned',
+    overdue:  'badge-overdue',
+  };
+  return <span className={map[status] ?? 'badge bg-neutral-100 text-neutral-500'}>{status}</span>;
+};
 
 const Transactions = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('All');
+  const [returning, setReturning] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [filter]);
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (status = '') => {
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get('/transactions');
+      const params = status && status !== 'All' ? `?status=${status.toLowerCase()}` : '';
+      const { data } = await axiosInstance.get(`/transactions${params}`);
       setTransactions(data.transactions || []);
-    } catch (err) {
-      console.error('Error fetching transactions', err);
+    } catch {
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReturn = async (id) => {
+  useEffect(() => { fetchTransactions(); }, []);
+
+  const handleFilter = (f) => {
+    setFilter(f);
+    fetchTransactions(f);
+  };
+
+  const handleReturn = async (transactionId) => {
+    setReturning(transactionId);
     try {
-      await axiosInstance.put(`/transactions/return/${id}`);
-      fetchTransactions();
+      await axiosInstance.patch(`/transactions/${transactionId}/return`);
+      showToast('Book returned successfully!');
+      fetchTransactions(filter);
     } catch (err) {
-      alert(err.response?.data?.message || 'Error returning book');
+      showToast(err.response?.data?.message || 'Return failed.', 'error');
+    } finally {
+      setReturning(null);
     }
   };
 
-  const filteredTransactions = filter === 'all' 
-    ? transactions 
-    : transactions.filter(t => t.status === filter);
-
-  const StatusBadge = ({ status }) => {
-    const styles = {
-      issued: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-      returned: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-      overdue: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-    };
-    const Icons = {
-      issued: Clock,
-      returned: CheckCircle,
-      overdue: AlertCircle,
-    };
-    const Icon = Icons[status];
-
-    return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${styles[status]}`}>
-        <Icon className="h-3.5 w-3.5" />
-        {status}
-      </span>
-    );
-  };
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold">Transaction History</h2>
-        <p className="text-slate-500">Track all book issues and returns.</p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl shadow-card-hover text-sm font-medium animate-slide-in-up
+          ${toast.type === 'error' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Transactions</h1>
+          <p className="text-sm text-neutral-400 mt-1">Track all borrowing history and returns</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => fetchTransactions(filter)}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Refresh
+        </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          {['all', 'issued', 'returned', 'overdue'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize whitespace-nowrap
-                ${filter === f 
-                  ? 'bg-indigo-600 text-white shadow-md' 
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}
-              `}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-        
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search records..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map(f => (
+          <button
+            key={f}
+            onClick={() => handleFilter(f)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200
+              ${filter === f
+                ? 'bg-primary-600 text-white shadow-glow-sm'
+                : 'bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:text-primary-600 hover:border-primary-300'
+              }`}
+          >
+            {f}
+          </button>
+        ))}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      {/* Table card */}
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="data-table">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                <th className="px-6 py-4 font-semibold">Book</th>
-                {user?.role === 'admin' && <th className="px-6 py-4 font-semibold">Member</th>}
-                <th className="px-6 py-4 font-semibold">Issue Date</th>
-                <th className="px-6 py-4 font-semibold">Due Date</th>
-                <th className="px-6 py-4 font-semibold">Status</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              <tr>
+                <th>Book</th>
+                {user?.role === 'admin' && <th>Member</th>}
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody>
               {loading ? (
-                Array(6).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={user?.role === 'admin' ? 6 : 5} />)
-              ) : filteredTransactions.length > 0 ? (
-                filteredTransactions.map((t) => (
-                  <tr key={t._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-slate-900 dark:text-slate-50">{t.book?.title}</p>
-                      <p className="text-xs text-slate-500">{t.book?.isbn}</p>
+                Array(5).fill(0).map((_, i) => <SkeletonRow key={i} />)
+              ) : transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                        <ArrowLeftRight className="h-6 w-6 text-neutral-300 dark:text-neutral-600" />
+                      </div>
+                      <p className="text-sm text-neutral-400">No transactions found</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                transactions.map(t => (
+                  <tr key={t._id}>
+                    <td>
+                      <div>
+                        <p className="font-medium text-neutral-800 dark:text-neutral-100">{t.book?.title || '—'}</p>
+                        <p className="text-xs text-neutral-400">{t.book?.author || ''}</p>
+                      </div>
                     </td>
-                    {user?.role === 'admin' && (
-                      <td className="px-6 py-4">
-                        <p className="font-medium">{t.user?.name}</p>
-                        <p className="text-xs text-slate-500">{t.user?.email}</p>
-                      </td>
-                    )}
-                    <td className="px-6 py-4 text-slate-500">
-                      {new Date(t.issueDate).toLocaleDateString()}
+                    {user?.role === 'admin' && <td>{t.user?.name || '—'}</td>}
+                    <td className="text-xs text-neutral-400">
+                      {t.issueDate ? new Date(t.issueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                     </td>
-                    <td className="px-6 py-4 text-slate-500">
-                      {new Date(t.dueDate).toLocaleDateString()}
+                    <td className="text-xs text-neutral-400">
+                      {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                     </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={t.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {t.status !== 'returned' && (user?.role === 'admin' || t.status === 'issued') && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-indigo-600 hover:text-indigo-700"
+                    <td><StatusBadge status={t.status} /></td>
+                    <td>
+                      {t.status === 'issued' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          loading={returning === t._id}
                           onClick={() => handleReturn(t._id)}
                         >
-                          Mark Returned
+                          Return
                         </Button>
                       )}
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan={user?.role === 'admin' ? 6 : 5} className="px-6 py-20 text-center">
-                    <div className="h-16 w-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <History className="h-8 w-8 text-slate-300" />
-                    </div>
-                    <p className="text-slate-500 font-medium">No transaction records found.</p>
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Footer */}
+        {!loading && transactions.length > 0 && (
+          <div className="px-5 py-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+            <p className="text-xs text-neutral-400">{transactions.length} result{transactions.length !== 1 ? 's' : ''}</p>
+          </div>
+        )}
       </div>
     </div>
   );

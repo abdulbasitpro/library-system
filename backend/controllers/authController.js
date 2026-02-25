@@ -35,15 +35,15 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
-    // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new AppError('Email already registered', 409));
     }
 
-    const user = await User.create({ name, email, password, role: role || 'member' });
+    // Role is ALWAYS 'member' on self-registration — admins are promoted via Manage Users
+    const user = await User.create({ name, email, password, role: 'member' });
     sendTokenResponse(user, 201, res);
   } catch (err) {
     next(err);

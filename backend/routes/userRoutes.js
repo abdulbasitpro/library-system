@@ -6,6 +6,7 @@ const {
   updateUser,
   deleteUser,
   getUserStats,
+  toggleRole,
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -16,6 +17,7 @@ router.get('/stats', getUserStats);
 router.get('/', getUsers);
 router.get('/:id', getUser);
 router.put('/:id', updateUser);
+router.patch('/:id/toggle-role', toggleRole);
 router.delete('/:id', deleteUser);
 
 module.exports = router;

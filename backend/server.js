@@ -8,10 +8,15 @@ const startReminderCron = require('./config/reminderCron');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 // Route imports
-const authRoutes = require('./routes/authRoutes');
-const bookRoutes = require('./routes/bookRoutes');
-const userRoutes = require('./routes/userRoutes');
+const authRoutes        = require('./routes/authRoutes');
+const bookRoutes        = require('./routes/bookRoutes');
+const userRoutes        = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const wishlistRoutes    = require('./routes/wishlistRoutes');
+const reviewRoutes      = require('./routes/reviewRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
+const bookRequestRoutes = require('./routes/bookRequestRoutes');
+const messageRoutes     = require('./routes/messageRoutes');
 
 // Connect to MongoDB then start cron
 connectDB();
@@ -33,10 +38,15 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/books', bookRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/transactions', transactionRoutes);
+app.use('/api/auth',          authRoutes);
+app.use('/api/books',         bookRoutes);
+app.use('/api/users',         userRoutes);
+app.use('/api/transactions',  transactionRoutes);
+app.use('/api/wishlists',     wishlistRoutes);
+app.use('/api/reviews',       reviewRoutes);
+app.use('/api/reservations',  reservationRoutes);
+app.use('/api/book-requests', bookRequestRoutes);
+app.use('/api/messages',      messageRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));

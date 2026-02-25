@@ -86,6 +86,25 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
+// @desc    Toggle user role between member <-> admin
+// @route   PATCH /api/users/:id/toggle-role
+// @access  Admin
+exports.toggleRole = async (req, res, next) => {
+  try {
+    if (req.params.id === req.user._id.toString()) {
+      return next(new AppError('You cannot change your own role', 400));
+    }
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return next(new AppError('User not found', 404));
+
+    user.role = user.role === 'admin' ? 'member' : 'admin';
+    await user.save({ validateBeforeSave: false });
+    res.status(200).json({ success: true, user });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get user stats (admin dashboard)
 // @route   GET /api/users/stats
 // @access  Admin

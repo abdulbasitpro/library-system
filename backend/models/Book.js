@@ -16,8 +16,8 @@ const bookSchema = new mongoose.Schema(
     },
     isbn: {
       type: String,
-      required: [true, 'ISBN is required'],
       unique: true,
+      sparse: true,   // allows multiple docs with no ISBN
       trim: true,
     },
     category: {
@@ -36,13 +36,20 @@ const bookSchema = new mongoose.Schema(
         'Self-Help',
         'Business',
         'Children',
+        'Comics',
+        'Art',
+        'Religion',
+        'Travel',
+        'Cooking',
+        'Health',
+        'General',
         'Other',
       ],
     },
     description: {
       type: String,
       trim: true,
-      maxlength: [1000, 'Description cannot exceed 1000 characters'],
+      maxlength: [2000, 'Description cannot exceed 2000 characters'],
       default: '',
     },
     quantity: {
@@ -61,6 +68,21 @@ const bookSchema = new mongoose.Schema(
     },
     publishedYear: {
       type: Number,
+    },
+    googleBooksId: {
+      type: String,
+      default: '',
+    },
+    publisher: {
+      type: String,
+      default: '',
+    },
+    pageCount: {
+      type: Number,
+    },
+    language: {
+      type: String,
+      default: 'en',
     },
   },
   { timestamps: true }
