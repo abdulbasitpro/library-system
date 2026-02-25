@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, Users, RefreshCw } from 'lucide-react';
+import { Search, Trash2, Users, RefreshCw, ShieldCheck, ShieldOff } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance';
 import Button from '../components/common/Button';
 import { SkeletonRow } from '../components/common/SkeletonLoader';
+import { useAuth } from '../hooks/useAuth';
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [toggling, setToggling] = useState(null);
   const [toast, setToast] = useState(null);
+  const { user: currentUser } = useAuth();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -33,6 +36,19 @@ const ManageUsers = () => {
     setQuery(v);
     clearTimeout(timer);
     timer = setTimeout(() => fetchUsers(v), 400);
+  };
+
+  const handleToggleRole = async (id, name, currentRole) => {
+    const action = currentRole === 'admin' ? 'demote to Member' : 'promote to Admin';
+    if (!window.confirm(`${action === 'promote to Admin' ? '🔑 Promote' : '⬇️ Demote'} ${name} to ${currentRole === 'admin' ? 'Member' : 'Admin'}?`)) return;
+    setToggling(id);
+    try {
+      const { data } = await axiosInstance.patch(`/users/${id}/toggle-role`);
+      setUsers(prev => prev.map(u => u._id === id ? data.user : u));
+      showToast(`${name} is now a ${data.user.role}`);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update role', 'error');
+    } finally { setToggling(null); }
   };
 
   const handleDelete = async (id, name) => {
@@ -113,7 +129,7 @@ const ManageUsers = () => {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Joined</th>
-                <th className="text-right">Action</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +165,29 @@ const ManageUsers = () => {
                       {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                     </td>
                     <td>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
+                        {/* Promote / Demote */}
+                        {u._id !== currentUser?._id && (
+                          <button
+                            onClick={() => handleToggleRole(u._id, u.name, u.role)}
+                            disabled={toggling === u._id}
+                            title={u.role === 'admin' ? 'Demote to Member' : 'Promote to Admin'}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40
+                              ${u.role === 'admin'
+                                ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30'
+                                : 'text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/30'
+                              }`}
+                          >
+                            {toggling === u._id
+                              ? <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              : u.role === 'admin'
+                                ? <ShieldOff className="h-3.5 w-3.5" />
+                                : <ShieldCheck className="h-3.5 w-3.5" />
+                            }
+                            {u.role === 'admin' ? 'Demote' : 'Promote'}
+                          </button>
+                        )}
+                        {/* Delete */}
                         <button
                           onClick={() => handleDelete(u._id, u.name)}
                           disabled={deleting === u._id}
